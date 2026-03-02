@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICF-SL · Health Facilities Distribution</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/shpjs/3.6.3/shp.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#f0f4f8;font-family:'Oswald',Arial,sans-serif;color:#1a1a1a;font-weight:400;font-size:14px;}
+code{font-family:'Roboto Mono',monospace;background:#e8eef6;padding:1px 6px;border-radius:3px;font-size:12px;color:#004080;}
+.page{max-width:1400px;margin:0 auto;padding:20px;}
+
+/* HEADER */
+.page-header{background:#004080;color:#fff;padding:22px 30px;text-align:center;border-radius:8px 8px 0 0;border-bottom:4px solid #ffc107;}
+.logo-row{display:flex;justify-content:center;margin-bottom:12px;}
+.logo-box{background:#fff;border-radius:8px;padding:8px 12px;}
+.logo-box img{width:80px;height:auto;display:block;}
+.page-header .org{font-size:12px;font-weight:700;letter-spacing:1.5px;opacity:.9;margin-bottom:2px;}
+.page-header .tagline{font-size:10px;font-style:italic;opacity:.75;margin-bottom:14px;}
+.page-header h1{font-size:26px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
+.page-header .sub{font-size:13px;opacity:.85;}
+
+/* MAIN CARD */
+.main-card{background:#fff;border:4px double #004080;border-top:none;border-radius:0 0 10px 10px;box-shadow:0 6px 20px rgba(0,64,128,.12);margin-bottom:20px;}
+
+/* SECTION */
+.section{padding:24px 28px;border-bottom:2px dashed #c0d4ec;}
+.section:last-child{border-bottom:none;}
+.section-hdr{background:#004080;color:#fff;padding:11px 18px;margin:-24px -28px 20px;display:flex;align-items:center;gap:10px;}
+.section-icon{background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.5);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+.section-title{font-size:15px;font-weight:700;letter-spacing:.5px;}
+.section-badge{background:#ffc107;color:#000;font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;margin-left:auto;letter-spacing:.5px;}
+
+/* UPLOAD */
+.upload-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.upload-label{font-size:11px;font-weight:700;letter-spacing:1.5px;color:#004080;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.req-badge{background:#dc3545;color:#fff;font-size:9px;font-weight:700;padding:1px 7px;border-radius:8px;}
+.dropzone{background:#f8fafd;border:2.5px dashed #004080;border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .25s;position:relative;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.dropzone:hover,.dropzone.over{background:#e8f0fc;border-color:#0056b3;border-style:solid;}
+.dropzone.done{background:#edf7f0;border-color:#28a745;border-style:solid;}
+.dropzone input{display:none;}
+.dz-icon{font-size:40px;margin-bottom:8px;line-height:1;}
+.dz-title{font-size:14px;font-weight:700;color:#004080;margin-bottom:4px;}
+.dropzone.done .dz-title{color:#155724;}
+.dz-sub{font-size:11px;color:#777;line-height:1.6;}
+.dz-status{margin-top:10px;font-size:12px;font-weight:700;color:#28a745;}
+.shp-tip{margin-top:10px;background:#e8eef6;border-left:3px solid #004080;padding:8px 12px;border-radius:0 6px 6px 0;font-size:11px;color:#555;text-align:left;line-height:1.5;}
+
+/* COL PICKERS */
+.col-picker-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;}
+.col-picker-box{background:#f0f4f8;border:2px solid #004080;border-radius:8px;padding:14px;}
+.cp-label{font-size:11px;font-weight:700;color:#004080;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
+.cp-hint{font-size:10px;color:#888;margin-top:5px;}
+select,input[type=text]{font-family:'Oswald',Arial,sans-serif;font-size:13px;font-weight:500;border:2px solid #004080;border-radius:6px;padding:8px 10px;width:100%;background:#fff;color:#1a1a1a;cursor:pointer;transition:border-color .2s;}
+select:focus,input[type=text]:focus{outline:none;border-color:#0056b3;}
+
+/* PREVIEW TABLE */
+.preview-table-wrap{overflow:auto;border:2px solid #004080;border-radius:8px;max-height:280px;margin-top:4px;}
+.preview-table{width:100%;border-collapse:collapse;font-size:12px;}
+.preview-table th{background:#004080;color:#fff;padding:9px 13px;text-align:left;position:sticky;top:0;white-space:nowrap;font-weight:700;letter-spacing:.3px;}
+.preview-table td{padding:8px 13px;border-bottom:1px solid #dde6f0;white-space:nowrap;color:#333;}
+.preview-table tr:nth-child(even){background:#f0f4f8;}
+.preview-table tr:hover{background:#dce8f8;}
+.preview-table td.num{font-family:'Roboto Mono',monospace;text-align:right;color:#004080;font-weight:600;}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin:14px 0;}
+.stat-box{background:#fff;border:3px solid #004080;border-radius:8px;padding:13px 10px;text-align:center;}
+.stat-box .sv{font-size:1.6rem;font-weight:700;color:#004080;line-height:1;}
+.stat-box .sl{font-size:10px;color:#666;margin-top:5px;letter-spacing:.5px;text-transform:uppercase;}
+.stat-box.green{border-color:#28a745;}.stat-box.green .sv{color:#28a745;}
+.stat-box.teal{border-color:#17a2b8;}.stat-box.teal .sv{color:#17a2b8;}
+.stat-box.gold{border-color:#e6a817;}.stat-box.gold .sv{color:#b07800;}
+.stat-box.red{border-color:#dc3545;}.stat-box.red .sv{color:#dc3545;}
+
+/* CUSTOMIZATION */
+.cust-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.cust-box{background:#f8fafd;border:2px solid #004080;border-radius:10px;padding:18px;}
+.cust-box h4{font-size:11px;font-weight:700;color:#004080;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:14px;border-bottom:2px solid #c0d4ec;padding-bottom:8px;}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:12px;font-weight:700;color:#004080;margin-bottom:6px;letter-spacing:.3px;}
+.range-wrap{display:flex;align-items:center;gap:10px;}
+.range-wrap input[type=range]{flex:1;cursor:pointer;accent-color:#004080;}
+.range-val{font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;color:#004080;min-width:42px;text-align:right;background:#e8eef6;padding:3px 8px;border-radius:4px;}
+.color-swatch-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.color-opt{width:30px;height:30px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all .2s;flex-shrink:0;}
+.color-opt:hover{transform:scale(1.15);}
+.color-opt.active{border-color:#004080;box-shadow:0 0 0 2px #ffc107;}
+
+/* HF TYPE PANEL */
+.hf-type-toggle{background:#f0f4f8;border:2px solid #004080;border-radius:10px;padding:16px 18px;margin-top:18px;}
+.hf-type-toggle-row{display:flex;align-items:center;gap:12px;}
+.hf-type-toggle-row input[type=checkbox]{width:18px;height:18px;accent-color:#004080;cursor:pointer;flex-shrink:0;}
+.hf-type-toggle-row span{font-size:13px;font-weight:700;color:#004080;letter-spacing:.3px;cursor:pointer;}
+.hf-type-body{margin-top:14px;border-top:2px dashed #c0d4ec;padding-top:14px;}
+.hf-col-select-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.hf-col-box{background:#fff;border:2px solid #004080;border-radius:8px;padding:12px;}
+.hf-col-box .cp-label{margin-bottom:8px;}
+.type-color-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;}
+.type-color-table th{background:#004080;color:#fff;padding:8px 12px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.5px;}
+.type-color-table td{padding:7px 12px;border-bottom:1px solid #dde6f0;vertical-align:middle;}
+.type-color-table tr:nth-child(even) td{background:#f8fafd;}
+.type-color-table tr:hover td{background:#e8f0fc;}
+.type-name-cell{font-weight:600;color:#1a1a1a;font-size:12px;}
+.type-count-cell{font-family:'Roboto Mono',monospace;color:#004080;font-weight:700;font-size:12px;text-align:right;}
+.type-color-cell{text-align:center;}
+.type-color-swatch{width:28px;height:28px;border-radius:50%;border:2px solid #004080;display:inline-block;cursor:pointer;vertical-align:middle;}
+input[type=color]{width:36px;height:28px;border:2px solid #004080;border-radius:6px;cursor:pointer;padding:1px;background:#fff;}
+
+/* MAP TABS */
+.map-tab-bar{display:flex;gap:0;border:2px solid #004080;border-radius:8px 8px 0 0;overflow:hidden;flex-wrap:wrap;}
+.map-tab{padding:9px 18px;font-size:12px;font-weight:700;font-family:'Oswald',Arial,sans-serif;border:none;background:#e8eef6;color:#004080;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;transition:all .2s;border-right:1px solid #c0d4ec;white-space:nowrap;}
+.map-tab:last-child{border-right:none;}
+.map-tab:hover{background:#c0d4ec;}
+.map-tab.active{background:#004080;color:#fff;}
+.map-tab-badge{background:#ffc107;color:#000;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:6px;}
+
+/* MAP CANVAS */
+.map-title-bar{background:#004080;color:#fff;padding:12px 20px;font-size:16px;font-weight:700;letter-spacing:.5px;text-align:center;}
+.map-canvas-wrap{border:3px solid #004080;border-top:none;border-radius:0 0 8px 8px;position:relative;background:#fff;overflow:hidden;}
+.no-tab .map-title-bar{border-radius:8px 8px 0 0;}
+#mapCanvas{display:block;width:100%;cursor:default;}
+.map-stats-overlay{position:absolute;bottom:14px;left:14px;background:rgba(255,255,255,.93);border:1.5px solid #004080;border-radius:6px;padding:10px 14px;font-size:11px;font-family:'Roboto Mono',monospace;z-index:10;line-height:1.8;pointer-events:none;max-width:260px;}
+.map-stats-overlay strong{font-family:'Oswald',Arial,sans-serif;font-size:12px;color:#004080;display:block;margin-bottom:3px;letter-spacing:.5px;}
+
+/* BUTTONS */
+.btn{padding:10px 18px;border:2px solid #004080;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Oswald',Arial,sans-serif;text-transform:uppercase;letter-spacing:.5px;transition:all .2s;display:inline-flex;align-items:center;gap:8px;}
+.btn-primary{background:#004080;color:#fff;}.btn-primary:hover{background:#0056b3;}
+.btn-secondary{background:#fff;color:#004080;}.btn-secondary:hover{background:#004080;color:#fff;}
+.btn-success{background:#28a745;color:#fff;border-color:#28a745;}.btn-success:hover{background:#218838;}
+.btn-lg{padding:13px 28px;font-size:14px;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+
+/* ALERTS */
+.alert{padding:.85rem 1rem;border-radius:6px;margin:.75rem 0;font-size:13px;font-weight:500;display:flex;align-items:flex-start;gap:10px;line-height:1.5;}
+.alert-info{background:#e8f0fc;border:2px solid #004080;color:#004080;}
+.alert-warning{background:#fff8e1;border:2px solid #ffc107;color:#7a5c00;}
+.alert-danger{background:#fde8e8;border:2px solid #dc3545;color:#721c24;}
+.alert-success{background:#edf7f0;border:2px solid #28a745;color:#155724;}
+
+/* DOWNLOAD */
+.dl-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.dl-box{background:#f8fafd;border:2px solid #004080;border-radius:10px;padding:22px;text-align:center;}
+.dl-box h4{font-size:14px;font-weight:700;color:#004080;margin-bottom:6px;letter-spacing:.3px;}
+.dl-box p{font-size:11px;color:#666;margin-bottom:16px;line-height:1.5;}
+.dl-type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:12px;}
+.dl-type-btn-wrap{display:flex;align-items:center;gap:8px;background:#f0f4f8;border:2px solid #004080;border-radius:8px;padding:8px 12px;}
+.dl-type-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(0,0,0,.2);}
+.dl-type-name{font-size:11px;font-weight:700;color:#004080;flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dl-type-btn{padding:4px 10px;font-size:10px;font-weight:700;border:1.5px solid #004080;border-radius:4px;background:#004080;color:#fff;cursor:pointer;font-family:'Oswald',Arial,sans-serif;white-space:nowrap;flex-shrink:0;}
+.dl-type-btn:hover{background:#0056b3;}
+
+/* TOAST */
+.toast-wrap{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast-item{background:#004080;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.25);border-left:4px solid #ffc107;animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:translateX(0);}}
+.toast-item.fade-out{animation:fadeOut .4s ease forwards;}
+@keyframes fadeOut{to{opacity:0;transform:translateX(30px);}}
+
+/* FOOTER */
+.page-footer{background:#004080;color:#fff;padding:16px 28px;text-align:center;font-size:12px;border-radius:8px;margin-top:16px;border-top:3px solid #ffc107;}
+.page-footer p{opacity:.8;font-size:11px;margin-top:3px;}
+
+.hidden{display:none!important;}
+@media(max-width:768px){
+  .upload-row,.cust-cols,.col-picker-row,.dl-row,.hf-col-select-wrap{grid-template-columns:1fr;}
+  .page{padding:10px;}
+  .map-tab{padding:7px 10px;font-size:11px;}
+}
+</style>
+</head>
+<body>
+
+<div class="toast-wrap" id="toastWrap"></div>
+<div class="page">
+
+<!-- HEADER -->
+<div class="page-header">
+  <div class="logo-row">
+    <div class="logo-box">
+      <img src="https://github.com/mohamedsillahkanu/gdp-dashboard-2/raw/6c7463b0d5c3be150aafae695a4bcbbd8aeb1499/ICF-SL.jpg" alt="ICF-SL" onerror="this.style.display='none'">
+    </div>
+  </div>
+  <p class="org">Informatics Consultancy Firm – Sierra Leone (ICF-SL)</p>
+  <p class="tagline">Driving Data-Driven Solutions for Health and Development</p>
+  <h1>Health Facilities Distribution</h1>
+  <p class="sub">Sierra Leone Health Facilities Map</p>
+</div>
+
+<div class="main-card">
+
+<!-- ── S1: UPLOAD ── -->
+<div class="section" id="secUpload">
+  <div class="section-hdr">
+    <span class="section-icon">1</span>
+    <span class="section-title">UPLOAD YOUR FILES</span>
+    <span class="section-badge">STEP 1</span>
+  </div>
+  <div class="upload-row">
+    <div>
+      <div class="upload-label">Coordinate Data File <span class="req-badge">REQUIRED</span></div>
+      <label for="dataFileInput">
+        <div class="dropzone" id="dzData"
+          ondragover="event.preventDefault();this.classList.add('over')"
+          ondragleave="this.classList.remove('over')"
+          ondrop="this.classList.remove('over');handleDataFile(event.dataTransfer.files[0]);event.preventDefault()">
+          <input type="file" id="dataFileInput" accept=".csv,.xlsx,.xls" onchange="handleDataFile(this.files[0])">
+          <span class="dz-icon">📂</span>
+          <div class="dz-title">Click to browse or drag and drop</div>
+          <div class="dz-sub">Excel (.xlsx / .xls) or CSV<br>Must contain latitude and longitude columns</div>
+          <div class="dz-status" id="dataFileStatus"></div>
+        </div>
+      </label>
+      <div class="col-picker-row hidden" id="colPickers">
+        <div class="col-picker-box">
+          <div class="cp-label">Latitude Column</div>
+          <select id="latColSel"><option value="">— select column —</option></select>
+          <div class="cp-hint">Range -90° to +90° (e.g. w_lat)</div>
+        </div>
+        <div class="col-picker-box">
+          <div class="cp-label">Longitude Column</div>
+          <select id="lonColSel"><option value="">— select column —</option></select>
+          <div class="cp-hint">Range -180° to +180° (e.g. w_long)</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="upload-label">Boundary Shapefile <span class="req-badge">REQUIRED</span></div>
+      <label for="shpFileInput">
+        <div class="dropzone" id="dzShp"
+          ondragover="event.preventDefault();this.classList.add('over')"
+          ondragleave="this.classList.remove('over')"
+          ondrop="this.classList.remove('over');handleShpFile(event.dataTransfer.files[0]);event.preventDefault()">
+          <input type="file" id="shpFileInput" accept=".zip" onchange="handleShpFile(this.files[0])">
+          <span class="dz-icon">📂</span>
+          <div class="dz-title">Click to browse or drag and drop</div>
+          <div class="dz-sub">Upload a <strong>.zip</strong> containing<br><code>.shp</code> + <code>.shx</code> + <code>.dbf</code></div>
+          <div class="dz-status" id="shpFileStatus"></div>
+        </div>
+      </label>
+      <div class="shp-tip">How to ZIP: Select <code>.shp</code>, <code>.shx</code>, and <code>.dbf</code> files together, right-click, then compress or send to zip.</div>
+    </div>
+  </div>
+  <div id="a1"></div>
+</div>
+
+<!-- ── S2: DATA PREVIEW ── -->
+<div class="section hidden" id="secPreview">
+  <div class="section-hdr">
+    <span class="section-icon">2</span>
+    <span class="section-title">DATA PREVIEW</span>
+    <span class="section-badge">STEP 2</span>
+  </div>
+  <div class="stats-row" id="previewStats"></div>
+  <p style="font-size:12px;font-weight:700;color:#004080;margin-bottom:8px;letter-spacing:.3px;">Showing first 10 rows of uploaded data:</p>
+  <div class="preview-table-wrap">
+    <table class="preview-table"><thead id="previewHead"></thead><tbody id="previewBody"></tbody></table>
+  </div>
+</div>
+
+<!-- ── S3: MAP CUSTOMIZATION ── -->
+<div class="section hidden" id="secCustom">
+  <div class="section-hdr">
+    <span class="section-icon">3</span>
+    <span class="section-title">MAP CUSTOMIZATION</span>
+    <span class="section-badge">STEP 3</span>
+  </div>
+
+  <div class="cust-cols">
+    <!-- Left: Visual Controls -->
+    <div class="cust-box">
+      <h4>Visual Controls</h4>
+      <div class="form-group">
+        <label>Map Title</label>
+        <input type="text" id="mapTitle" value="Health Facility Distribution">
+      </div>
+      <div class="form-group">
+        <label>Point Size <span style="color:#888;font-size:10px;font-weight:400;">(10 – 200)</span></label>
+        <div class="range-wrap">
+          <input type="range" id="ptSize" min="10" max="200" value="50" oninput="document.getElementById('ptSizeV').textContent=this.value">
+          <span class="range-val" id="ptSizeV">50</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Point Transparency <span style="color:#888;font-size:10px;font-weight:400;">(0.1 – 1.0)</span></label>
+        <div class="range-wrap">
+          <input type="range" id="ptAlpha" min="0.1" max="1.0" step="0.05" value="0.7" oninput="document.getElementById('ptAlphaV').textContent=parseFloat(this.value).toFixed(2)">
+          <span class="range-val" id="ptAlphaV">0.70</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Border Line Width <span style="color:#888;font-size:10px;font-weight:400;">(0.1 – 5.0)</span></label>
+        <div class="range-wrap">
+          <input type="range" id="lineWidth" min="0.1" max="5.0" step="0.1" value="0.5" oninput="document.getElementById('lineWidthV').textContent=parseFloat(this.value).toFixed(1)">
+          <span class="range-val" id="lineWidthV">0.5</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Map Width (inches) <span style="color:#888;font-size:10px;font-weight:400;">(8 – 24)</span></label>
+        <div class="range-wrap">
+          <input type="range" id="mapW" min="8" max="24" value="15" oninput="document.getElementById('mapWV').textContent=this.value">
+          <span class="range-val" id="mapWV">15</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Map Height (inches) <span style="color:#888;font-size:10px;font-weight:400;">(6 – 20)</span></label>
+        <div class="range-wrap">
+          <input type="range" id="mapH" min="6" max="20" value="12" oninput="document.getElementById('mapHV').textContent=this.value">
+          <span class="range-val" id="mapHV">12</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Color Selection -->
+    <div class="cust-box" id="colorBox">
+      <h4>Color Selection</h4>
+      <div id="singleColorControls">
+        <div class="form-group">
+          <label>Background Color</label>
+          <select id="bgColorSel">
+            <option value="white">White</option>
+            <option value="lightgray">Light Gray</option>
+            <option value="beige">Beige</option>
+            <option value="lightblue">Light Blue</option>
+            <option value="#111111">Black</option>
+          </select>
+          <div class="color-swatch-row">
+            <div class="color-opt active" style="background:white;border-color:#bbb;" data-sel="bgColorSel" data-val="white" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:lightgray;" data-sel="bgColorSel" data-val="lightgray" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:beige;" data-sel="bgColorSel" data-val="beige" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:lightblue;" data-sel="bgColorSel" data-val="lightblue" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#111111;" data-sel="bgColorSel" data-val="#111111" onclick="pickColor(this)"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Point Color</label>
+          <select id="ptColorSel">
+            <option value="#47B5FF">#47B5FF (Sky Blue)</option>
+            <option value="#dc3545">Red</option>
+            <option value="#28a745">Green</option>
+            <option value="#9b59b6">Purple</option>
+            <option value="#fd7e14">Orange</option>
+          </select>
+          <div class="color-swatch-row">
+            <div class="color-opt active" style="background:#47B5FF;" data-sel="ptColorSel" data-val="#47B5FF" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#dc3545;" data-sel="ptColorSel" data-val="#dc3545" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#28a745;" data-sel="ptColorSel" data-val="#28a745" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#9b59b6;" data-sel="ptColorSel" data-val="#9b59b6" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#fd7e14;" data-sel="ptColorSel" data-val="#fd7e14" onclick="pickColor(this)"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Border Line Color</label>
+          <select id="lineColorSel">
+            <option value="#000000">Black</option>
+            <option value="#808080">Gray</option>
+            <option value="#a9a9a9">Dark Gray</option>
+            <option value="#696969">Dim Gray</option>
+            <option value="#d3d3d3">Light Gray</option>
+          </select>
+          <div class="color-swatch-row">
+            <div class="color-opt active" style="background:#000000;" data-sel="lineColorSel" data-val="#000000" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#808080;" data-sel="lineColorSel" data-val="#808080" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#a9a9a9;" data-sel="lineColorSel" data-val="#a9a9a9" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#696969;" data-sel="lineColorSel" data-val="#696969" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#d3d3d3;border-color:#aaa;" data-sel="lineColorSel" data-val="#d3d3d3" onclick="pickColor(this)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HF TYPE mode: background & border still shown -->
+      <div id="typeColorBg" class="hidden">
+        <div class="form-group">
+          <label>Background Color</label>
+          <select id="bgColorSel2">
+            <option value="white">White</option>
+            <option value="lightgray">Light Gray</option>
+            <option value="beige">Beige</option>
+            <option value="lightblue">Light Blue</option>
+            <option value="#111111">Black</option>
+          </select>
+          <div class="color-swatch-row">
+            <div class="color-opt active" style="background:white;border-color:#bbb;" data-sel="bgColorSel2" data-val="white" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:lightgray;" data-sel="bgColorSel2" data-val="lightgray" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:beige;" data-sel="bgColorSel2" data-val="beige" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:lightblue;" data-sel="bgColorSel2" data-val="lightblue" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#111111;" data-sel="bgColorSel2" data-val="#111111" onclick="pickColor(this)"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Border Line Color</label>
+          <select id="lineColorSel2">
+            <option value="#000000">Black</option>
+            <option value="#808080">Gray</option>
+            <option value="#a9a9a9">Dark Gray</option>
+            <option value="#696969">Dim Gray</option>
+            <option value="#d3d3d3">Light Gray</option>
+          </select>
+          <div class="color-swatch-row">
+            <div class="color-opt active" style="background:#000000;" data-sel="lineColorSel2" data-val="#000000" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#808080;" data-sel="lineColorSel2" data-val="#808080" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#a9a9a9;" data-sel="lineColorSel2" data-val="#a9a9a9" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#696969;" data-sel="lineColorSel2" data-val="#696969" onclick="pickColor(this)"></div>
+            <div class="color-opt" style="background:#d3d3d3;border-color:#aaa;" data-sel="lineColorSel2" data-val="#d3d3d3" onclick="pickColor(this)"></div>
+          </div>
+        </div>
+        <p style="font-size:11px;color:#666;margin-top:4px;">Point colors are set per facility type below.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- HF TYPE TOGGLE PANEL -->
+  <div class="hf-type-toggle">
+    <div class="hf-type-toggle-row">
+      <input type="checkbox" id="hfTypeCheck" onchange="toggleHFType()">
+      <span onclick="document.getElementById('hfTypeCheck').click()">Color points by Health Facility Type</span>
+    </div>
+    <div class="hf-type-body hidden" id="hfTypeBody">
+      <div class="hf-col-select-wrap">
+        <div class="hf-col-box">
+          <div class="cp-label">Facility Type Column</div>
+          <select id="hfTypeColSel" onchange="onTypeColChange()"><option value="">— select column —</option></select>
+          <div class="cp-hint">Column containing the health facility type or category</div>
+        </div>
+        <div class="hf-col-box" id="typeStatsBox" style="display:flex;flex-direction:column;justify-content:center;">
+          <div class="cp-label">Type Summary</div>
+          <div id="typeCountInfo" style="font-size:12px;color:#555;line-height:1.8;"></div>
+        </div>
+      </div>
+      <div id="typeColorTableWrap" class="hidden">
+        <p style="font-size:12px;font-weight:700;color:#004080;margin-bottom:8px;letter-spacing:.3px;">Assign a color to each facility type. Click the color picker to change.</p>
+        <div style="overflow:auto;border:2px solid #004080;border-radius:8px;max-height:320px;">
+          <table class="type-color-table">
+            <thead>
+              <tr>
+                <th style="width:40%;">Facility Type</th>
+                <th style="width:15%;text-align:right;">Count</th>
+                <th style="width:25%;text-align:center;">Color</th>
+                <th style="width:20%;text-align:center;">Preview</th>
+              </tr>
+            </thead>
+            <tbody id="typeColorTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="a3"></div>
+  <div class="btn-row">
+    <button class="btn btn-primary btn-lg" onclick="renderMap()">Generate Map</button>
+    <button class="btn btn-secondary" onclick="resetAll()">Start Over</button>
+  </div>
+</div>
+
+<!-- ── S4: MAP OUTPUT ── -->
+<div class="section hidden" id="secMap">
+  <div class="section-hdr">
+    <span class="section-icon">4</span>
+    <span class="section-title">MAP OUTPUT</span>
+    <span class="section-badge">STEP 4</span>
+  </div>
+  <div id="mapAlerts"></div>
+  <!-- Tab bar (shown only in HF type mode) -->
+  <div id="mapTabBar" class="map-tab-bar hidden"></div>
+  <div class="map-title-bar" id="mapTitleBar">Health Facility Distribution</div>
+  <div class="map-canvas-wrap">
+    <canvas id="mapCanvas"></canvas>
+    <div class="map-stats-overlay" id="statsOverlay">
+      <strong>Map Statistics</strong>
+      <div id="statsText"></div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-success btn-lg" onclick="goDownload()">Download Options</button>
+    <button class="btn btn-secondary" onclick="reCustomize()">Back to Customization</button>
+  </div>
+</div>
+
+<!-- ── S5: DOWNLOAD ── -->
+<div class="section hidden" id="secDownload">
+  <div class="section-hdr">
+    <span class="section-icon">5</span>
+    <span class="section-title">DOWNLOAD OPTIONS</span>
+    <span class="section-badge">STEP 5</span>
+  </div>
+  <div class="stats-row" id="dlStats"></div>
+  <div class="dl-row">
+    <div class="dl-box">
+      <h4>Download Map (PNG)</h4>
+      <p>High-resolution static map image. In type mode, download the overall map or individual type maps below.</p>
+      <button class="btn btn-success btn-lg" onclick="downloadCurrentPNG()">Download Current Map (.png)</button>
+      <div id="typeDownloadSection" class="hidden" style="margin-top:16px;">
+        <p style="font-size:12px;font-weight:700;color:#004080;margin-bottom:8px;border-top:2px dashed #c0d4ec;padding-top:12px;">Individual Type Maps:</p>
+        <div class="dl-type-grid" id="typeDownloadGrid"></div>
+      </div>
+    </div>
+    <div class="dl-box">
+      <h4>Download Processed Data (CSV)</h4>
+      <p>Cleaned and validated coordinate data with all original columns retained</p>
+      <button class="btn btn-primary btn-lg" onclick="downloadCSV()">Download Data (.csv)</button>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="goBackMap()">Back to Map</button>
+    <button class="btn btn-secondary" onclick="resetAll()">Start Over</button>
+  </div>
+</div>
+
+</div><!-- /main-card -->
+
+<div class="page-footer">
+  <strong>ICF-SL · Health Facilities Distribution Tool</strong>
+  <p>Upload coordinate data and shapefile &mdash; Customize appearance &mdash; Generate static map &mdash; Export</p>
+</div>
+</div><!-- /page -->
+
+<script>
+/* ════════════════════════════════════════
+   STATE
+════════════════════════════════════════ */
+let rawData=[], dataHeaders=[], dataFileName='';
+let shpGeoJSON=null, shpLoaded=false;
+let validPoints=[], latCol='', lonCol='';
+let hfTypeMode=false, hfTypeCol='', typeColors={}, typeList=[];
+// canvases per tab: key = 'overall' or type name
+let canvasStore={};
+let activeTab='overall';
+
+// Extended color palette for types
+const TYPE_PALETTE=[
+  '#e74c3c','#2980b9','#27ae60','#f39c12','#8e44ad',
+  '#1abc9c','#e67e22','#c0392b','#16a085','#2c3e50',
+  '#d35400','#7f8c8d','#f1c40f','#6c5ce7','#00b894',
+  '#fd79a8','#0984e3','#55efc4','#fdcb6e','#a29bfe'
+];
+
+/* ════════════════════════════════════════
+   TOAST / UTILS
+════════════════════════════════════════ */
+function toast(msg,dur=2800){
+  const wrap=document.getElementById('toastWrap');
+  const el=document.createElement('div');el.className='toast-item';el.textContent=msg;
+  wrap.appendChild(el);
+  setTimeout(()=>{el.classList.add('fade-out');setTimeout(()=>el.remove(),400);},dur);
+}
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const show=id=>document.getElementById(id).classList.remove('hidden');
+const hide=id=>document.getElementById(id).classList.add('hidden');
+const sc=id=>setTimeout(()=>document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'}),80);
+const setA=(id,html)=>document.getElementById(id).innerHTML=html;
+const cssColor=v=>({white:'#ffffff',lightgray:'#d3d3d3',beige:'#f5f5dc',lightblue:'#add8e6','#111111':'#111111'}[v]||v);
+
+/* ════════════════════════════════════════
+   SWATCH PICKER
+════════════════════════════════════════ */
+function pickColor(el){
+  el.parentElement.querySelectorAll('.color-opt').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(el.dataset.sel).value=el.dataset.val;
+}
+
+/* ════════════════════════════════════════
+   FILE: COORDINATE DATA
+════════════════════════════════════════ */
+function handleDataFile(file){
+  if(!file)return;
+  dataFileName=file.name;
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(!['csv','xlsx','xls'].includes(ext)){setA('a1','<div class="alert alert-danger">Please upload a CSV or Excel (.xlsx / .xls) file.</div>');return;}
+  document.getElementById('dzData').querySelector('.dz-title').textContent='Loading...';
+  const reader=new FileReader();
+  if(ext==='csv'){
+    reader.onload=e=>{
+      const r=Papa.parse(e.target.result,{header:true,skipEmptyLines:true,dynamicTyping:false});
+      if(!r.data.length){setA('a1','<div class="alert alert-danger">File appears to be empty.</div>');return;}
+      rawData=r.data;dataHeaders=r.meta.fields||[];onDataLoaded();
+    };reader.readAsText(file);
+  }else{
+    reader.onload=e=>{
+      const wb=XLSX.read(e.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const d=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!d.length){setA('a1','<div class="alert alert-danger">Spreadsheet appears to be empty.</div>');return;}
+      rawData=d;dataHeaders=Object.keys(d[0]);onDataLoaded();
+    };reader.readAsBinaryString(file);
+  }
+}
+
+function onDataLoaded(){
+  const dz=document.getElementById('dzData');
+  dz.classList.add('done');dz.querySelector('.dz-title').textContent='File Loaded';
+  document.getElementById('dataFileStatus').textContent=`${dataFileName} · ${rawData.length.toLocaleString()} rows · ${dataHeaders.length} columns`;
+  ['latColSel','lonColSel','hfTypeColSel'].forEach(id=>{
+    const sel=document.getElementById(id);
+    const keep=id==='hfTypeColSel'?'<option value="">— select column —</option>':'<option value="">— select column —</option>';
+    sel.innerHTML=keep;
+    dataHeaders.forEach(h=>{const o=document.createElement('option');o.value=h;o.textContent=h;sel.appendChild(o);});
+  });
+  const latG=dataHeaders.find(h=>/w_lat|^lat$|^latitude$/i.test(h.trim()));
+  const lonG=dataHeaders.find(h=>/w_long|w_lon|^lon$|^long$|^longitude$/i.test(h.trim()));
+  if(latG)document.getElementById('latColSel').value=latG;
+  if(lonG)document.getElementById('lonColSel').value=lonG;
+  ['latColSel','lonColSel'].forEach(id=>document.getElementById(id).addEventListener('change',tryActivate));
+  show('colPickers');setA('a1','');tryActivate();
+  toast(`Loaded ${rawData.length.toLocaleString()} rows from "${dataFileName}"`);
+}
+
+function tryActivate(){
+  const lv=document.getElementById('latColSel').value;
+  const lnv=document.getElementById('lonColSel').value;
+  if(!lv||!lnv)return;
+  latCol=lv;lonCol=lnv;
+  buildPreview();
+  show('secPreview');
+  if(shpLoaded){
+    setA('a1','');show('secCustom');sc('secPreview');
+  }else{
+    hide('secCustom');
+    setA('a1','<div class="alert alert-warning">Coordinate columns selected. Please also upload the boundary shapefile (.zip) to continue.</div>');
+  }
+}
+
+/* ════════════════════════════════════════
+   FILE: SHAPEFILE
+════════════════════════════════════════ */
+function handleShpFile(file){
+  if(!file)return;
+  if(!file.name.toLowerCase().endsWith('.zip')){setA('a1','<div class="alert alert-warning">Shapefile must be a .zip archive containing .shp, .shx, and .dbf files.</div>');return;}
+  const dz=document.getElementById('dzShp');dz.querySelector('.dz-title').textContent='Parsing...';
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try{
+      const geo=await shp(e.target.result);
+      shpGeoJSON=Array.isArray(geo)?geo[0]:geo;shpLoaded=true;
+      dz.classList.add('done');dz.querySelector('.dz-title').textContent='Shapefile Loaded';
+      const fc=shpGeoJSON.features?.length||0;
+      document.getElementById('shpFileStatus').textContent=`${file.name} · ${fc} boundary features`;
+      toast(`Shapefile ready: ${fc} boundary features`);
+      tryActivate();
+    }catch(err){
+      dz.querySelector('.dz-title').textContent='Parse Error';
+      setA('a1',`<div class="alert alert-danger">Shapefile error: ${err.message}. Ensure the ZIP contains .shp, .shx, and .dbf files with the same base name.</div>`);
+    }
+  };reader.readAsArrayBuffer(file);
+}
+
+/* ════════════════════════════════════════
+   DATA PREVIEW
+════════════════════════════════════════ */
+function buildPreview(){
+  latCol=document.getElementById('latColSel').value;
+  lonCol=document.getElementById('lonColSel').value;
+  document.getElementById('previewStats').innerHTML=`
+    <div class="stat-box"><div class="sv">${rawData.length.toLocaleString()}</div><div class="sl">Total Rows</div></div>
+    <div class="stat-box teal"><div class="sv">${dataHeaders.length}</div><div class="sl">Columns</div></div>
+    <div class="stat-box gold"><div class="sv">${dataFileName.split('.').pop().toUpperCase()}</div><div class="sl">File Type</div></div>
+    <div class="stat-box ${shpLoaded?'green':'red'}"><div class="sv">${shpLoaded?(shpGeoJSON?.features?.length||'Yes'):'Pending'}</div><div class="sl">Shp Features</div></div>
+  `;
+  const cols=dataHeaders.slice(0,10);
+  document.getElementById('previewHead').innerHTML='<tr>'+cols.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr>';
+  document.getElementById('previewBody').innerHTML=rawData.slice(0,10).map(row=>
+    '<tr>'+cols.map(h=>{const v=String(row[h]??'');const isNum=!isNaN(parseFloat(v))&&v!=='';return`<td class="${isNum?'num':''}">${esc(v.substring(0,40))}</td>`;}).join('')+'</tr>'
+  ).join('');
+}
+
+/* ════════════════════════════════════════
+   HF TYPE TOGGLE
+════════════════════════════════════════ */
+function toggleHFType(){
+  hfTypeMode=document.getElementById('hfTypeCheck').checked;
+  if(hfTypeMode){
+    show('hfTypeBody');
+    hide('singleColorControls');
+    show('typeColorBg');
+  }else{
+    hide('hfTypeBody');
+    show('singleColorControls');
+    hide('typeColorBg');
+    typeList=[];typeColors={};
+  }
+}
+
+function onTypeColChange(){
+  hfTypeCol=document.getElementById('hfTypeColSel').value;
+  if(!hfTypeCol){hide('typeColorTableWrap');return;}
+  // Get unique types from valid points (or raw data if not validated yet)
+  const src=validPoints.length?validPoints:rawData;
+  const counts={};
+  src.forEach(r=>{const v=String(r[hfTypeCol]??'').trim();if(v)counts[v]=(counts[v]||0)+1;});
+  typeList=Object.keys(counts).sort();
+  // Assign palette colors, preserve existing
+  typeList.forEach((t,i)=>{if(!typeColors[t])typeColors[t]=TYPE_PALETTE[i%TYPE_PALETTE.length];});
+  document.getElementById('typeCountInfo').innerHTML=`<b>${typeList.length}</b> types found<br>${typeList.length} color assignments`;
+  buildTypeColorTable(counts);
+  show('typeColorTableWrap');
+}
+
+function buildTypeColorTable(counts){
+  document.getElementById('typeColorTableBody').innerHTML=typeList.map(t=>`
+    <tr>
+      <td class="type-name-cell">${esc(t)}</td>
+      <td class="type-count-cell">${(counts[t]||0).toLocaleString()}</td>
+      <td class="type-color-cell">
+        <input type="color" value="${typeColors[t]}" onchange="typeColors['${esc(t)}']=this.value;updateSwatchPreview('${esc(t)}',this.value)" title="Click to change color">
+      </td>
+      <td class="type-color-cell">
+        <span class="type-color-swatch" id="swatch_${btoa(encodeURIComponent(t)).replace(/=/g,'')}" style="background:${typeColors[t]};"></span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function updateSwatchPreview(typeName,color){
+  const key=btoa(encodeURIComponent(typeName)).replace(/=/g,'');
+  const el=document.getElementById('swatch_'+key);
+  if(el)el.style.background=color;
+}
+
+/* ════════════════════════════════════════
+   VALIDATE POINTS
+════════════════════════════════════════ */
+function validateAndFilter(){
+  latCol=document.getElementById('latColSel').value;
+  lonCol=document.getElementById('lonColSel').value;
+  return rawData
+    .filter(r=>{const la=r[latCol],lo=r[lonCol];return la!==''&&la!=null&&lo!==''&&lo!=null&&!isNaN(parseFloat(la))&&!isNaN(parseFloat(lo));})
+    .filter(r=>{const la=parseFloat(r[latCol]),lo=parseFloat(r[lonCol]);return lo>=-180&&lo<=180&&la>=-90&&la<=90;})
+    .map(r=>({...r,_lat:parseFloat(r[latCol]),_lon:parseFloat(r[lonCol])}));
+}
+
+/* ════════════════════════════════════════
+   RENDER MAP (entry point)
+════════════════════════════════════════ */
+function renderMap(){
+  if(!shpLoaded){setA('a3','<div class="alert alert-danger">Boundary shapefile is required. Please upload the shapefile (.zip) before generating the map.</div>');return;}
+  setA('a3','');
+  validPoints=validateAndFilter();
+  if(!validPoints.length){
+    setA('mapAlerts','<div class="alert alert-danger">No valid coordinates found after filtering. Please check your latitude and longitude column selections.</div>');
+    show('secMap');sc('secMap');return;
+  }
+  setA('mapAlerts','');
+
+  // Re-read type colors from table inputs in case user changed them
+  if(hfTypeMode&&hfTypeCol){
+    document.querySelectorAll('#typeColorTableBody input[type=color]').forEach((inp,i)=>{
+      typeColors[typeList[i]]=inp.value;
+    });
+    // Refresh typeList from current valid points
+    const counts={};
+    validPoints.forEach(r=>{const v=String(r[hfTypeCol]??'').trim();if(v)counts[v]=(counts[v]||0)+1;});
+    typeList=Object.keys(counts).sort();
+    typeList.forEach((t,i)=>{if(!typeColors[t])typeColors[t]=TYPE_PALETTE[i%TYPE_PALETTE.length];});
+  }
+
+  const title=document.getElementById('mapTitle').value||'Health Facility Distribution';
+  document.getElementById('mapTitleBar').textContent=title;
+  canvasStore={};activeTab='overall';
+
+  show('secMap');sc('secMap');
+
+  if(hfTypeMode&&hfTypeCol&&typeList.length){
+    buildMapTabs();
+    setTimeout(()=>renderAllTabs(title),120);
+  }else{
+    hide('mapTabBar');
+    setTimeout(()=>renderSingleMap(validPoints,title,'overall',document.getElementById('ptColorSel').value),120);
+  }
+}
+
+/* ════════════════════════════════════════
+   TABS (type mode)
+════════════════════════════════════════ */
+function buildMapTabs(){
+  const bar=document.getElementById('mapTabBar');
+  show('mapTabBar');
+  const tabs=[{key:'overall',label:'All Types'},...typeList.map(t=>({key:t,label:t}))];
+  bar.innerHTML=tabs.map(t=>`
+    <button class="map-tab${t.key==='overall'?' active':''}" id="tab_${btoa(encodeURIComponent(t.key)).replace(/=/g,'')}"
+      onclick="switchTab('${esc(t.key)}')">${esc(t.label)}
+      ${t.key!=='overall'?`<span class="map-tab-badge" style="background:${typeColors[t.key]||'#ccc'};color:#fff;">${validPoints.filter(p=>String(p[hfTypeCol]??'').trim()===t.key).length}</span>`:''}
+    </button>
+  `).join('');
+}
+
+function switchTab(key){
+  activeTab=key;
+  document.querySelectorAll('.map-tab').forEach(b=>b.classList.remove('active'));
+  const tabEl=document.getElementById('tab_'+btoa(encodeURIComponent(key)).replace(/=/g,''));
+  if(tabEl)tabEl.classList.add('active');
+
+  const title=document.getElementById('mapTitle').value||'Health Facility Distribution';
+  const displayTitle=key==='overall'?title:`${title} — ${key}`;
+  document.getElementById('mapTitleBar').textContent=displayTitle;
+
+  if(canvasStore[key]){
+    // Already rendered — restore from stored data URL
+    restoreCanvas(canvasStore[key], key, displayTitle);
+  }else{
+    // Render on demand
+    const pts=key==='overall'?validPoints:validPoints.filter(p=>String(p[hfTypeCol]??'').trim()===key);
+    const color=key==='overall'?null:typeColors[key];
+    setTimeout(()=>renderSingleMap(pts,displayTitle,key,color),60);
+  }
+}
+
+function restoreCanvas(dataUrl, key, displayTitle){
+  const pts=key==='overall'?validPoints:validPoints.filter(p=>String(p[hfTypeCol]??'').trim()===key);
+  const lines=buildStatsLines(pts,key);
+  document.getElementById('statsText').innerHTML=lines.map((l,i)=>i===0?`<b>${l}</b>`:l).join('<br>');
+  document.getElementById('mapTitleBar').textContent=displayTitle;
+  // The stored dataUrl is the composite export; re-draw just the map portion on the display canvas
+  const W_CSS=document.getElementById('mapCanvas').parentElement.offsetWidth||1100;
+  const H_CSS=Math.round(W_CSS*getMapRatio());
+  const TITLE_H=52;
+  const canvas=document.getElementById('mapCanvas');
+  const img=new Image();img.onload=()=>{
+    const ctx=canvas.getContext('2d');
+    ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);
+    // Crop out just the map area (skip title header)
+    const DPR=2;
+    ctx.drawImage(img,0,TITLE_H*DPR,W_CSS*DPR,H_CSS*DPR, 0,0, canvas.width,canvas.height);
+  };img.src=dataUrl;
+}
+
+/* ════════════════════════════════════════
+   RENDER ALL TABS (type mode)
+════════════════════════════════════════ */
+async function renderAllTabs(title){
+  // Render overall first (shown immediately)
+  renderSingleMap(validPoints,title,'overall',null);
+  // Pre-render each type in background
+  for(const t of typeList){
+    const pts=validPoints.filter(p=>String(p[hfTypeCol]??'').trim()===t);
+    if(pts.length) await renderSingleMapOffscreen(pts,`${title} — ${t}`,t,typeColors[t]);
+  }
+}
+
+function renderSingleMapOffscreen(pts,title,key,color){
+  return new Promise(resolve=>{
+    // Build composite export canvas for each type
+    canvasStore[key]=buildExportCanvas(pts,title,key,color);
+    resolve();
+  });
+}
+
+/* ════════════════════════════════════════
+   CORE CANVAS DRAW
+════════════════════════════════════════ */
+function getMapRatio(){
+  const w=parseInt(document.getElementById('mapW')?.value||15);
+  const h=parseInt(document.getElementById('mapH')?.value||12);
+  return h/w;
+}
+
+function buildStatsLines(pts,key){
+  const lats=pts.map(p=>p._lat),lons=pts.map(p=>p._lon);
+  return [
+    'Total Facilities: '+pts.length.toLocaleString(),
+    key&&key!=='overall'?'Type: '+key:null,
+    'Longitude: '+Math.min(...lons).toFixed(2)+'° to '+Math.max(...lons).toFixed(2)+'°',
+    'Latitude:  '+Math.min(...lats).toFixed(2)+'° to '+Math.max(...lats).toFixed(2)+'°'
+  ].filter(Boolean);
+}
+
+function buildExportCanvas(pts,title,key,singleColor){
+  // Creates a full composite canvas: title header + map + stats footer
+  const DPR=2;
+  const W_CSS=document.getElementById('mapCanvas').parentElement.offsetWidth||1100;
+  const H_CSS=Math.round(W_CSS*getMapRatio());
+  const TITLE_H=52, STATS_H=72, TOTAL_H=TITLE_H+H_CSS+STATS_H;
+  const exp=document.createElement('canvas');
+  exp.width=W_CSS*DPR; exp.height=TOTAL_H*DPR;
+  const ctx=exp.getContext('2d'); ctx.scale(DPR,DPR);
+
+  // ── Title bar ──
+  ctx.fillStyle='#004080';
+  ctx.fillRect(0,0,W_CSS,TITLE_H);
+  ctx.fillStyle='#ffffff';
+  ctx.font='bold 22px Oswald,Arial';
+  ctx.textBaseline='middle';
+  ctx.textAlign='center';
+  ctx.fillText(title,W_CSS/2,TITLE_H/2);
+
+  // ── Map area ──
+  const offC=document.createElement('canvas');
+  offC.width=W_CSS*DPR; offC.height=H_CSS*DPR;
+  const offCtx=offC.getContext('2d'); offCtx.scale(DPR,DPR);
+  drawMapOnContext(offCtx,W_CSS,H_CSS,pts,title,key,singleColor);
+  ctx.drawImage(offC,0,TITLE_H,W_CSS,H_CSS);
+
+  // ── Stats footer ──
+  ctx.fillStyle='#f8fafd';
+  ctx.fillRect(0,TITLE_H+H_CSS,W_CSS,STATS_H);
+  ctx.fillStyle='#004080';
+  ctx.fillRect(0,TITLE_H+H_CSS,4,STATS_H);  // left accent bar
+  const lines=buildStatsLines(pts,key);
+  ctx.fillStyle='#1a1a1a';
+  ctx.font='bold 11px Roboto Mono,monospace';
+  ctx.textAlign='left';
+  lines.forEach((l,i)=>{
+    ctx.fillText(l, 16, TITLE_H+H_CSS+14+(i*15));
+  });
+  // Right side: source tag
+  ctx.fillStyle='#888';
+  ctx.font='10px Oswald,Arial';
+  ctx.textAlign='right';
+  ctx.fillText('ICF-SL · Health Facilities Distribution Tool',W_CSS-12,TITLE_H+H_CSS+STATS_H-10);
+
+  return exp.toDataURL('image/png');
+}
+
+function renderSingleMap(pts,title,key,singleColor){
+  const canvas=document.getElementById('mapCanvas');
+  const container=canvas.parentElement;
+  const DPR=2;
+  const W_CSS=container.offsetWidth||1100;
+  const H_CSS=Math.round(W_CSS*getMapRatio());
+  canvas.style.width=W_CSS+'px';canvas.style.height=H_CSS+'px';
+  canvas.width=W_CSS*DPR;canvas.height=H_CSS*DPR;
+  const ctx=canvas.getContext('2d');ctx.scale(DPR,DPR);
+  drawMapOnContext(ctx,W_CSS,H_CSS,pts,title,key,singleColor);
+  // Build composite export canvas (title + map + stats) for download
+  canvasStore[key]=buildExportCanvas(pts,title,key,singleColor);
+  // Stats overlay (HTML element)
+  const lines=buildStatsLines(pts,key);
+  document.getElementById('statsText').innerHTML=lines.map((l,i)=>i===0?`<b>${l}</b>`:l).join('<br>');
+  toast('Map generated successfully');
+}
+
+function drawMapOnContext(ctx,cW,cH,pts,title,key,singleColor){
+  // Settings
+  const bgColor    = cssColor(hfTypeMode ? document.getElementById('bgColorSel2').value : document.getElementById('bgColorSel').value);
+  const lineColor  = hfTypeMode ? document.getElementById('lineColorSel2').value : document.getElementById('lineColorSel').value;
+  const lineWidth  = parseFloat(document.getElementById('lineWidth').value);
+  const ptSizeRaw  = parseInt(document.getElementById('ptSize').value);
+  const ptAlpha    = parseFloat(document.getElementById('ptAlpha').value);
+  const radius     = Math.max(2,Math.min(28,ptSizeRaw*0.14));
+
+  // Compute bounds from shapefile
+  let minLat,maxLat,minLon,maxLon;
+  if(shpLoaded&&shpGeoJSON){const bb=getGeoJSONBBox(shpGeoJSON);minLon=bb[0];minLat=bb[1];maxLon=bb[2];maxLat=bb[3];}
+  else{const lats=pts.map(r=>r._lat),lons=pts.map(r=>r._lon);minLat=Math.min(...lats);maxLat=Math.max(...lats);minLon=Math.min(...lons);maxLon=Math.max(...lons);}
+
+  // Aspect ratio correction (mirrors matplotlib 1/cos(mid_lat))
+  const midLat=(minLat+maxLat)/2;
+  let aspect=1;if(midLat>-90&&midLat<90){const a=1/Math.cos(midLat*Math.PI/180);aspect=isFinite(a)&&a>0?a:1;}
+
+  // Padding
+  const padFrac=0.04;
+  const latSpan=(maxLat-minLat)||0.5;const lonSpan=(maxLon-minLon)||0.5;
+  const padLat=latSpan*padFrac;const padLon=lonSpan*padFrac;
+  minLat-=padLat;maxLat+=padLat;minLon-=padLon;maxLon+=padLon;
+
+  const toX=lon=>((lon-minLon)/(maxLon-minLon))*cW;
+  const toY=lat=>(1-(lat-minLat)/(maxLat-minLat))*cH;
+
+  // White bg
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,cW,cH);
+
+  // Shapefile
+  if(shpLoaded&&shpGeoJSON?.features){
+    shpGeoJSON.features.forEach(f=>drawGeoFeature(ctx,f,toX,toY,bgColor,lineColor,lineWidth));
+  }else{ctx.fillStyle=bgColor;ctx.fillRect(0,0,cW,cH);}
+
+  // Points
+  if(hfTypeMode&&singleColor===null){
+    // Overall: draw each type in its color
+    typeList.forEach(t=>{
+      const tPts=pts.filter(p=>String(p[hfTypeCol]??'').trim()===t);
+      const col=hexAlpha(typeColors[t]||'#47B5FF',ptAlpha);
+      ctx.fillStyle=col;
+      tPts.forEach(pt=>{ctx.beginPath();ctx.arc(toX(pt._lon),toY(pt._lat),radius,0,Math.PI*2);ctx.fill();});
+    });
+    // Legend (top right) — mirrors matplotlib figtext style
+    drawTypeLegend(ctx,cW,cH,typeList,typeColors,pts);
+  }else{
+    const col=hexAlpha(singleColor||'#47B5FF',ptAlpha);
+    ctx.fillStyle=col;
+    pts.forEach(pt=>{ctx.beginPath();ctx.arc(toX(pt._lon),toY(pt._lat),radius,0,Math.PI*2);ctx.fill();});
+    // Single type legend
+    if(key&&key!=='overall'&&singleColor){
+      drawTypeLegend(ctx,cW,cH,[key],{[key]:singleColor},pts);
+    }
+  }
+}
+
+function drawTypeLegend(ctx,cW,cH,types,colors,pts){
+  if(!types.length)return;
+  const pad=10,sw=12,th=16,lpad=8,rpad=12,vpad=8;
+  ctx.font='bold 11px Oswald, Arial';
+  const maxLabelW=Math.max(...types.map(t=>ctx.measureText(t).width));
+  const bW=sw+lpad+maxLabelW+rpad;
+  const bH=vpad+(th*types.length)+vpad;
+  const bX=cW-bW-14;const bY=14;
+  ctx.fillStyle='rgba(255,255,255,0.92)';
+  ctx.strokeStyle='#004080';ctx.lineWidth=1.5;
+  roundRect(ctx,bX,bY,bW,bH,5);ctx.fill();ctx.stroke();
+  types.forEach((t,i)=>{
+    const y=bY+vpad+i*th+th/2;
+    ctx.fillStyle=colors[t]||'#47B5FF';
+    ctx.beginPath();ctx.arc(bX+lpad+sw/2,y,sw/2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#1a1a1a';ctx.font='bold 10px Oswald, Arial';ctx.textBaseline='middle';
+    ctx.fillText(t,bX+lpad+sw+4,y);
+  });
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+function drawGeoFeature(ctx,feature,toX,toY,fill,stroke,lw){
+  const geom=feature.geometry;if(!geom)return;
+  ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.fillStyle=fill;
+  const drawRing=coords=>{if(!coords?.length)return;ctx.moveTo(toX(coords[0][0]),toY(coords[0][1]));for(let i=1;i<coords.length;i++)ctx.lineTo(toX(coords[i][0]),toY(coords[i][1]));ctx.closePath();};
+  if(geom.type==='Polygon'){ctx.beginPath();geom.coordinates.forEach(r=>drawRing(r));ctx.fill();ctx.stroke();}
+  else if(geom.type==='MultiPolygon'){geom.coordinates.forEach(poly=>{ctx.beginPath();poly.forEach(r=>drawRing(r));ctx.fill();ctx.stroke();});}
+}
+
+function getGeoJSONBBox(geoJSON){
+  let minLon=Infinity,minLat=Infinity,maxLon=-Infinity,maxLat=-Infinity;
+  const walk=coords=>{if(typeof coords[0]==='number'){minLon=Math.min(minLon,coords[0]);maxLon=Math.max(maxLon,coords[0]);minLat=Math.min(minLat,coords[1]);maxLat=Math.max(maxLat,coords[1]);}else coords.forEach(walk);};
+  (geoJSON.features||[]).forEach(f=>f.geometry&&walk(f.geometry.coordinates));
+  return[minLon,minLat,maxLon,maxLat];
+}
+
+function hexAlpha(color,alpha){
+  const tmp=document.createElement('canvas');tmp.width=1;tmp.height=1;
+  const c=tmp.getContext('2d');c.fillStyle=color;c.fillRect(0,0,1,1);
+  const d=c.getImageData(0,0,1,1).data;
+  return`rgba(${d[0]},${d[1]},${d[2]},${alpha})`;
+}
+
+/* ════════════════════════════════════════
+   DOWNLOAD
+════════════════════════════════════════ */
+function goDownload(){
+  const lats=validPoints.map(r=>r._lat),lons=validPoints.map(r=>r._lon);
+  document.getElementById('dlStats').innerHTML=`
+    <div class="stat-box green"><div class="sv">${validPoints.length.toLocaleString()}</div><div class="sl">Valid Facilities</div></div>
+    <div class="stat-box red"><div class="sv">${(rawData.length-validPoints.length).toLocaleString()}</div><div class="sl">Filtered Out</div></div>
+    <div class="stat-box teal"><div class="sv">${lons.length?Math.min(...lons).toFixed(2)+'°':'—'}</div><div class="sl">Min Longitude</div></div>
+    <div class="stat-box teal"><div class="sv">${lons.length?Math.max(...lons).toFixed(2)+'°':'—'}</div><div class="sl">Max Longitude</div></div>
+  `;
+  // Type download section
+  if(hfTypeMode&&typeList.length){
+    show('typeDownloadSection');
+    document.getElementById('typeDownloadGrid').innerHTML=typeList.map(t=>`
+      <div class="dl-type-btn-wrap">
+        <span class="dl-type-dot" style="background:${typeColors[t]||'#47B5FF'};"></span>
+        <span class="dl-type-name" title="${esc(t)}">${esc(t)}</span>
+        <button class="dl-type-btn" onclick="downloadTypePNG('${esc(t)}')">PNG</button>
+      </div>
+    `).join('');
+  }else{hide('typeDownloadSection');}
+  show('secDownload');sc('secDownload');
+  toast('Download options ready');
+}
+
+function downloadCurrentPNG(){
+  const url=canvasStore[activeTab];
+  if(!url){toast('Generate the map first');return;}
+  const title=(document.getElementById('mapTitle').value||'health_facility_map').replace(/\s+/g,'_').toLowerCase();
+  const suffix=activeTab==='overall'?'':('_'+activeTab.replace(/\s+/g,'_').toLowerCase());
+  triggerDownload(url,`${title}${suffix}.png`);
+  toast('Map downloaded as PNG');
+}
+
+function downloadTypePNG(typeName){
+  const url=canvasStore[typeName];
+  if(!url){
+    // Render offscreen and then download
+    const pts=validPoints.filter(p=>String(p[hfTypeCol]??'').trim()===typeName);
+    const dtitle=(document.getElementById('mapTitle').value||'Health Facility Distribution')+' — '+typeName;
+    renderSingleMapOffscreen(pts,dtitle,typeName,typeColors[typeName]).then(()=>{
+      const u=canvasStore[typeName];if(u){triggerDownload(u,typeName.replace(/\s+/g,'_').toLowerCase()+'_map.png');toast(`Downloaded: ${typeName}`);}
+    });
+    return;
+  }
+  triggerDownload(url,typeName.replace(/\s+/g,'_').toLowerCase()+'_map.png');
+  toast(`Downloaded: ${typeName}`);
+}
+
+function triggerDownload(dataUrl,filename){
+  const a=document.createElement('a');a.href=dataUrl;a.download=filename;a.click();
+}
+
+function downloadCSV(){
+  if(!validPoints.length){toast('No data available');return;}
+  const cols=dataHeaders;
+  const rows=[cols.join(','),...validPoints.map(r=>cols.map(k=>`"${String(r[k]??'').replace(/"/g,'""')}"`).join(','))];
+  const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='processed_coordinates.csv';a.click();
+  toast('CSV downloaded');
+}
+
+/* ════════════════════════════════════════
+   NAV / RESET
+════════════════════════════════════════ */
+function reCustomize(){hide('secMap');sc('secCustom');}
+function goBackMap(){hide('secDownload');sc('secMap');}
+
+function resetAll(){
+  rawData=[];dataHeaders=[];dataFileName='';shpGeoJSON=null;shpLoaded=false;
+  validPoints=[];latCol='';lonCol='';hfTypeMode=false;hfTypeCol='';typeColors={};typeList=[];
+  canvasStore={};activeTab='overall';
+  ['secPreview','secCustom','secMap','secDownload'].forEach(hide);
+  ['dzData','dzShp'].forEach(id=>{
+    const dz=document.getElementById(id);dz.classList.remove('done','over');
+    dz.querySelector('.dz-title').textContent='Click to browse or drag and drop';
+  });
+  document.getElementById('dataFileStatus').textContent='';
+  document.getElementById('shpFileStatus').textContent='';
+  document.getElementById('dataFileInput').value='';
+  document.getElementById('shpFileInput').value='';
+  document.getElementById('colPickers').classList.add('hidden');
+  document.getElementById('hfTypeCheck').checked=false;
+  hide('hfTypeBody');show('singleColorControls');hide('typeColorBg');hide('typeColorTableWrap');
+  document.getElementById('typeCountInfo').textContent='';
+  setA('a1','');setA('mapTabBar','');hide('mapTabBar');hide('typeDownloadSection');
+  const canvas=document.getElementById('mapCanvas');
+  const ctx=canvas.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);
+  sc('secUpload');toast('Reset complete');
+}
+</script>
+</body>
+</html>
